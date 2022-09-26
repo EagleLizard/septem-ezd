@@ -7,21 +7,25 @@ import {
   ScreenBufferOpts, TERM_FILL_ATTR,
 } from '../../element';
 
+const logger = Logger.init();
+
 export type CpuBarBoxOpts = {
   screenBufOpts: ScreenBufferOpts;
   cpuIdx: number;
   numCpus: number;
+  color?: number;
 };
 
 export type CpuBarBoxDrawOpts = {
   cpuBarVal: number;
-  logger: Logger;
+  color?: number;
 }
 
 export class CpuBarBox {
   screenBuffer: tk.ScreenBuffer;
   cpudIdx: number;
   numCpus: number;
+  color: number;
 
   private maxY: number;
   private barX: number;
@@ -31,6 +35,7 @@ export class CpuBarBox {
     this.screenBuffer = new tk.ScreenBuffer(opts.screenBufOpts);
     this.cpudIdx = opts.cpuIdx;
     this.numCpus = opts.numCpus;
+    this.color = opts.color;
 
     this.maxY = this.screenBuffer.height - 1;
     this.barX = this.screenBuffer.width - 1;
@@ -44,7 +49,8 @@ export class CpuBarBox {
 
     maxBrailleY = this.maxY * 4;
     currPercent = opts.cpuBarVal / 100;
-    color = getColor(
+    // currPercent = 1;
+    color = this.color ?? opts.color ?? getColor(
       this.cpudIdx,
       this.numCpus,
     );

@@ -10,25 +10,36 @@ import {
   TkApp,
 } from './tk-app/tk-app';
 
-// const DRAW_FPS = 24;
-const DRAW_FPS = 12;
+// const DRAW_FPS = 120;
+// const DRAW_FPS = 48;
+const DRAW_FPS = 24;
+// const DRAW_FPS = 12;
 const DRAW_INTERVAL_MS = Math.round(1000 / DRAW_FPS);
 
 // const TK_APP_LOG_INTERVAL_MS = 1 * 1e3;
-const TK_APP_LOG_INTERVAL_MS = 60 * 1e3;
+const TK_APP_LOG_INTERVAL_MS = 5 * 1e3;
+// const TK_APP_LOG_INTERVAL_MS = 60 * 1e3;
 
 export async function tkMain() {
   let tkApp: TkApp, doDraw: boolean;
+  let tkAppLogTimer: Timer, tkAppTimer: Timer;
+
   let cpuSampler: CpuSampler, currCpuSampleMap: Record<number, CpuSampleData>;
   let cpuSampleLookBackMs: number, cpuSampleStartTime: number;
-  let tkAppLogTimer: Timer, tkAppTimer: Timer;
+
+  let memSampler: MemSampler;
+
   const logger = Logger.init();
-  // cpuSampler = new CpuSampler();
+
   cpuSampler = await CpuSampler.init();
   cpuSampler.start();
 
+  memSampler = await MemSampler.init();
+  memSampler.start();
+
   tkApp = await setupTermKit({
     numCpus: cpuSampler.getNumCpus(),
+    onInput: handleInput,
   });
 
   tkAppTimer = Timer.start();
@@ -47,10 +58,7 @@ export async function tkMain() {
       )
     );
     if(tkAppLogTimer.currentMs() > TK_APP_LOG_INTERVAL_MS) {
-      logger.log(`Running for: ${getIntuitiveTimeString(tkAppTimer.currentMs())}`);
-      logger.log(`curr numSamples: ${currCpuSampleMap[0].loadSamples.length.toLocaleString()}`);
-      logger.log(`total numSamples: ${cpuSampler.getNumSamples().toLocaleString()}`);
-      logger.log('');
+      printStats();
       tkAppLogTimer.reset();
     }
     // logger.log(currCpuSampleMap[0].loadSamples.length);
@@ -58,6 +66,30 @@ export async function tkMain() {
     doDraw = !(await tkApp.draw()).destroyed;
     await sleep(DRAW_INTERVAL_MS);
   } while(doDraw);
+
+  function handleInput(keyName: string, matches: string[]) {
+    switch(keyName) {
+      case 'p':
+        printStats();
+        break;
+      // default:
+      //   logger.log('Keyboard Input:');
+      //   logger.log(`keyName: ${keyName}`);
+      //   logger.log(`matches: ${matches}`);
+    }
+  }
+
+  function printStats() {
+    logger.log(`${getIntuitiveTimeString(tkAppTimer.currentMs())}`);
+    logger.log(`tkApp drawCount: ${tkApp.getDrawCount().toLocaleString()}`);
+    logger.log('');
+    logger.log(`curr cpu numSamples: ${currCpuSampleMap[0].loadSamples.length.toLocaleString()}`);
+    logger.log(`lookback cpu numSamples: ${cpuSampler.getNumSamples().toLocaleString()}`);
+    logger.log(`total cpu numSamples: ${cpuSampler.sampleCount.toLocaleString()}`);
+    logger.log('');
+    logger.log(`total mem numSamples: ${memSampler.sampleCount.toLocaleString()}`);
+    logger.log('');
+  }
 }
 
 function getCpuBarData(cpuSampleMap: Record<number, CpuSampleData>): Record<number, number> {

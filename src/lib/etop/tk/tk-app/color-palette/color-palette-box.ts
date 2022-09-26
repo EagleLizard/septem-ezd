@@ -1,8 +1,9 @@
 
 import tk from 'terminal-kit';
+import { cardShuffle } from '../../../../../util/shuffle';
 
 import { ScreenBufferOpts, TERM_FILL_ATTR } from '../../element';
-import { TERM_COLOR_CODES } from '../term-color';
+import { shuffleColorsHash, TERM_COLOR_CODES } from '../term-color';
 
 export type ColorPaletteBoxOpts = {
   screenBufOpts: ScreenBufferOpts;
@@ -25,7 +26,11 @@ export class ColorPaletteBox {
     let colorSampleWidth: number, printWidth: number,
       labelWidth: number, leftPad: number;
     let colorCodes: number[];
+
     colorCodes = TERM_COLOR_CODES;
+    // colorCodes = shuffleColorsHash(TERM_COLOR_CODES);
+    // colorCodes = cardShuffle(TERM_COLOR_CODES, 3);
+
     colorLabels = colorCodes.map(colorCode => `${colorCode}`);
     maxLabelLength = -Infinity;
     colorLabels.forEach(colorLabel => {
