@@ -6,7 +6,8 @@ import {
   Logger,
 } from '../../util/logger';
 import {
-  cardShuffle,
+  leafShuffle,
+  splitLeafShuffle,
 } from '../../util/shuffle';
 
 export async function etopMain() {
@@ -18,14 +19,6 @@ export async function etopMain() {
   logger.log('!'.repeat(50));
   logger.log('start');
   logger.log('!'.repeat(50));
-
-  // let arr: number[], shuffledArr: number[];
-  // arr = Array(52).fill(0).map((v, idx) => idx + 1);
-
-  // logger.log(arr);
-  // shuffledArr = cardShuffle(arr, 3);
-
-  // return;
 
   await tkMain();
 }

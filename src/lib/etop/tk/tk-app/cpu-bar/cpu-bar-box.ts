@@ -5,7 +5,7 @@ import { BrailleCanvas } from '../../../../braille/braille';
 import { TERM_COLOR_CODES } from '../term-color';
 import {
   ScreenBufferOpts, TERM_FILL_ATTR,
-} from '../../element';
+} from '../../tk-element/tk-element';
 
 const logger = Logger.init();
 

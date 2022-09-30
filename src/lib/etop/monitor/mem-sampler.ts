@@ -24,9 +24,9 @@ export type MemSample = {
 export class MemSampler {
   sampleCount: number;
   sampleIntervalMs: number;
+  memSamples: MemSample[];
 
   private doSample: boolean;
-  private memSamples: MemSample[];
 
   private constructor(opts: MemSamplerOpts = {}) {
     this.sampleCount = 0;

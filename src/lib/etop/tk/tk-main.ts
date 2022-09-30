@@ -87,6 +87,7 @@ export async function tkMain() {
     logger.log(`lookback cpu numSamples: ${cpuSampler.getNumSamples().toLocaleString()}`);
     logger.log(`total cpu numSamples: ${cpuSampler.sampleCount.toLocaleString()}`);
     logger.log('');
+    logger.log(`mem numSamples: ${memSampler.memSamples.length.toLocaleString()}`);
     logger.log(`total mem numSamples: ${memSampler.sampleCount.toLocaleString()}`);
     logger.log('');
   }

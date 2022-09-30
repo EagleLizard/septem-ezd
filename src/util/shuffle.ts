@@ -2,46 +2,70 @@ import { Logger } from './logger';
 
 const logger = Logger.init();
 
-export function cardShuffle<T>(arr: T[], numShuffles = 1): T[] {
-  let n: number;
+export const splitLeafShuffle = curryCardShuffle(_splitLeafShuffle);
+export const leafShuffle = curryCardShuffle(_leafShuffle);
+
+function curryCardShuffle<T>(
+  shuffleFn: (arr: T[]) => T[]
+): (arr: T[], numShuffles?: number) => T[] {
+  return function cardShuffle(arr: T[], numShuffles = 1): T[] {
+    let n: number;
+    arr = arr.slice();
+
+    n = numShuffles;
+    while(n > 0) {
+
+      // logger.log('');
+      // logger.log(`shuffle ${(numShuffles - n) + 1} / ${numShuffles}:`);
+
+      n--;
+      arr = shuffleFn(arr);
+    }
+
+    return arr;
+  };
+}
+
+function _leafShuffle<T>(arr: T[]): T[] {
+  let splatDeck: T[][];
   arr = arr.slice();
+  splatDeck = splitDeck(arr);
+  return zipMerge(
+    splatDeck[1],
+    splatDeck[0],
+  );
+}
 
-  n = numShuffles;
-  while(n > 0) {
-    // logger.log('');
-    // logger.log(`shuffle ${(numShuffles - n) + 1} / ${numShuffles}:`);
-    n--;
-    arr = doShuffle(arr);
-  }
+function _splitLeafShuffle<T>(_arr: T[]): T[] {
+  let splatDeck: T[][];
+  let firstHalf: T[], lastHalf: T[];
+  let zippedArr: T[];
+  splatDeck = splitDeck3Way(_arr);
 
-  return arr;
+  // logger.log('splatDeck');
+  // logger.log(splatDeck);
 
-  function doShuffle(_arr: T[]): T[] {
-    let splatDeck: T[][];
-    let firstHalf: T[], lastHalf: T[];
-    let zippedArr: T[];
-    splatDeck = splitDeckBy(arr, 3);
-    // logger.log('splatDeck');
-    // logger.log(splatDeck);
-    arr = [
-      ...splatDeck[0],
-      ...splatDeck[2],
-      ...splatDeck[1],
-    ];
-    [
-      firstHalf,
-      lastHalf,
-    ] = splitDeck(arr);
-    // logger.log('firstHalf');
-    // logger.log(firstHalf);
-    // logger.log('lastHalf');
-    // logger.log(lastHalf);
-    zippedArr = zipMerge(lastHalf, firstHalf);
-    // logger.log('zippedArr');
-    // logger.log(zippedArr);
+  _arr = [
+    ...splatDeck[0],
+    ...splatDeck[2],
+    ...splatDeck[1],
+  ];
+  [
+    firstHalf,
+    lastHalf,
+  ] = splitDeck(_arr);
 
-    return zippedArr;
-  }
+  // logger.log('firstHalf');
+  // logger.log(firstHalf);
+  // logger.log('lastHalf');
+  // logger.log(lastHalf);
+
+  zippedArr = zipMerge(lastHalf, firstHalf);
+
+  // logger.log('zippedArr');
+  // logger.log(zippedArr);
+
+  return zippedArr;
 }
 
 function splitDeck<T>(_arr: T[]): [ T[], T[] ] {
@@ -54,6 +78,10 @@ function splitDeck<T>(_arr: T[]): [ T[], T[] ] {
     aHalf,
     bHalf,
   ];
+}
+
+function splitDeck3Way<T>(arr: T[]): T[][] {
+  return splitDeckBy(arr, 3);
 }
 
 function splitDeckBy<T>(arr: T[], splitIntoN: number): T[][] {

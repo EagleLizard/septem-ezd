@@ -10,6 +10,7 @@ import { TERM_COLOR_CODES } from './term-color';
 import {
   ColorPaletteBox,
 } from './color-palette/color-palette-box';
+import { leafShuffle, splitLeafShuffle } from '../../../../util/shuffle';
 
 export type TkAppOpts = {
   numCpus: number;
@@ -43,7 +44,9 @@ export async function setupTermKit(opts: TkAppOpts): Promise<TkApp> {
 
   const logger = Logger.init();
 
-  termColors = TERM_COLOR_CODES.slice();
+  termColors = splitLeafShuffle(TERM_COLOR_CODES.slice());
+  // termColors = leafShuffle(TERM_COLOR_CODES.slice());
+  // termColors = TERM_COLOR_CODES.slice();
 
   cpuBarLabelWidth = -Infinity;
   cpuBarData = Array(opts.numCpus).fill(0).reduce((acc, curr, idx) => {
@@ -134,7 +137,7 @@ export async function setupTermKit(opts: TkAppOpts): Promise<TkApp> {
     });
 
     maxCpuBoxHeight = Infinity;
-    targetBoxHeight = Math.round(screen.height / 2);
+    targetBoxHeight = Math.round(screen.height / 3);
 
     boxHeight = (targetBoxHeight > maxCpuBoxHeight)
       ? maxCpuBoxHeight
@@ -179,6 +182,7 @@ export async function setupTermKit(opts: TkAppOpts): Promise<TkApp> {
         x: 0,
         y: cpuBarBoxContainer.height,
       },
+      colors: termColors,
     });
   }
 
