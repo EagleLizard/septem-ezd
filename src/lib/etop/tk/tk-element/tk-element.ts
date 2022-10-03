@@ -25,6 +25,22 @@ export abstract class TkElement {
     this.screenBuffer = new tk.ScreenBuffer(opts.screenBufOpts);
   }
 
+  get width(): number {
+    return this.screenBuffer.width;
+  }
+
+  get height(): number {
+    return this.screenBuffer.height;
+  }
+
+  get x(): number {
+    return this.screenBuffer.x;
+  }
+
+  get y(): number {
+    return this.screenBuffer.y;
+  }
+
   protected draw() {
     this.screenBuffer.fill({
       attr: TERM_FILL_ATTR,

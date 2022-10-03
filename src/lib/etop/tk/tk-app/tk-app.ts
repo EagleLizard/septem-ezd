@@ -11,6 +11,7 @@ import {
   ColorPaletteBox,
 } from './color-palette/color-palette-box';
 import { leafShuffle, splitLeafShuffle } from '../../../../util/shuffle';
+import { MemWidgetBox } from './mem-widget/mem-widget-box';
 
 export type TkAppOpts = {
   numCpus: number;
@@ -37,6 +38,8 @@ export async function setupTermKit(opts: TkAppOpts): Promise<TkApp> {
   let cpuBarBoxContainer: tk.ScreenBuffer, cpuBarLabelWidth: number;
   let cpuBarBoxes: CpuBarBox[];
   let colorPaletteBox: ColorPaletteBox;
+  let memWidgetBox: MemWidgetBox;
+
   let doRedraw: boolean, drawCount: number;
   let termColors: number[];
 
@@ -44,8 +47,8 @@ export async function setupTermKit(opts: TkAppOpts): Promise<TkApp> {
 
   const logger = Logger.init();
 
-  termColors = splitLeafShuffle(TERM_COLOR_CODES.slice());
-  // termColors = leafShuffle(TERM_COLOR_CODES.slice());
+  // termColors = splitLeafShuffle(TERM_COLOR_CODES.slice(), 1);
+  termColors = leafShuffle(TERM_COLOR_CODES.slice(), 1);
   // termColors = TERM_COLOR_CODES.slice();
 
   cpuBarLabelWidth = -Infinity;
@@ -137,7 +140,7 @@ export async function setupTermKit(opts: TkAppOpts): Promise<TkApp> {
     });
 
     maxCpuBoxHeight = Infinity;
-    targetBoxHeight = Math.round(screen.height / 3);
+    targetBoxHeight = Math.floor(screen.height / 3);
 
     boxHeight = (targetBoxHeight > maxCpuBoxHeight)
       ? maxCpuBoxHeight
@@ -172,15 +175,27 @@ export async function setupTermKit(opts: TkAppOpts): Promise<TkApp> {
       });
     });
 
+    memWidgetBox = new MemWidgetBox({
+      screenBufOpts: {
+        dst: screen,
+        height: Math.floor(screen.height / 3),
+        width: Math.floor(screen.width / 3),
+        x: 0,
+        y: cpuBarBoxContainer.height,
+      }
+    });
+
     colorPaletteBox = new ColorPaletteBox({
       screenBufOpts: {
         dst: screen,
-        height: screen.height - cpuBarBoxContainer.height,
+        height: screen.height - (
+          cpuBarBoxContainer.height + memWidgetBox.height
+        ),
         width: screen.width - cpuBarBoxContainer.width - 2,
         // x: cpuBarBoxContainer.width + 1,
         // y: 0,
         x: 0,
-        y: cpuBarBoxContainer.height,
+        y: memWidgetBox.y + memWidgetBox.height,
       },
       colors: termColors,
     });
@@ -197,10 +212,8 @@ export async function setupTermKit(opts: TkAppOpts): Promise<TkApp> {
 
     $redrawCpuBox();
     $redrawColorPalette();
+    memWidgetBox.draw();
 
-    cpuBarBoxContainer.draw({
-      delta: true,
-    });
     screen.draw({
       delta: true,
     });
@@ -225,6 +238,10 @@ export async function setupTermKit(opts: TkAppOpts): Promise<TkApp> {
         cpuBarVal: cpuBarData[idx],
         // color,
       });
+    });
+
+    cpuBarBoxContainer.draw({
+      delta: true,
     });
   }
 

@@ -27,5 +27,8 @@ export class MemWidgetBox extends TkElement {
       attr: {},
       wrap: true,
     }, 'Memory');
+    this.screenBuffer.draw({
+      delta: true,
+    });
   }
 }
