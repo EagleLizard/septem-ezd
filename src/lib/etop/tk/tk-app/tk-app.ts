@@ -5,13 +5,14 @@ import {
   CpuBarBox,
 } from './cpu-bar/cpu-bar-box';
 import { Logger } from '../../../../util/logger';
-import { TERM_COLOR_CODES } from './term-color';
+import { OMIT_COLOR_CODES, TERM_COLOR_CODES } from './term-color';
 
 import {
   ColorPaletteBox,
 } from './color-palette/color-palette-box';
 import { leafShuffle, splitLeafShuffle } from '../../../../util/shuffle';
 import { MemWidgetBox } from './mem-widget/mem-widget-box';
+import { MemSample } from '../../monitor/mem-sampler';
 
 export type TkAppOpts = {
   numCpus: number;
@@ -24,8 +25,9 @@ export type TkAppState = {
 
 export type TkApp = {
   draw: () => Promise<TkAppState>;
-  setCpuBarData: (data: Record<number, number>) => void;
   getDrawCount: () => number;
+  setCpuBarData: (data: Record<number, number>) => void;
+  setMemData: (data: MemSample['data']) => void;
 };
 
 const TERM_FILL_ATTR: tk.ScreenBuffer.Attributes = {
@@ -48,8 +50,8 @@ export async function setupTermKit(opts: TkAppOpts): Promise<TkApp> {
   const logger = Logger.init();
 
   // termColors = splitLeafShuffle(TERM_COLOR_CODES.slice(), 1);
-  termColors = leafShuffle(TERM_COLOR_CODES.slice(), 1);
-  // termColors = TERM_COLOR_CODES.slice();
+  // termColors = leafShuffle(TERM_COLOR_CODES.slice(), 1);
+  termColors = TERM_COLOR_CODES.slice();
 
   cpuBarLabelWidth = -Infinity;
   cpuBarData = Array(opts.numCpus).fill(0).reduce((acc, curr, idx) => {
@@ -119,13 +121,19 @@ export async function setupTermKit(opts: TkAppOpts): Promise<TkApp> {
         destroyed: !doRedraw,
       };
     },
-    setCpuBarData: updateCpuData,
     getDrawCount: () => drawCount,
+    setCpuBarData: updateCpuData,
+    setMemData: (memData) => {
+      memWidgetBox.setData(memData);
+    }
   };
 
   function updateCpuData(data: Record<number, number>) {
     Object.keys(data).forEach(cpuKey => {
-      cpuBarData[+cpuKey] = data[+cpuKey];
+      let cpuIdx: number;
+      cpuIdx = +cpuKey;
+      cpuBarData[cpuIdx] = data[cpuIdx];
+      cpuBarBoxes[cpuIdx].setData(cpuBarData[cpuIdx]);
     });
   }
 
@@ -158,7 +166,11 @@ export async function setupTermKit(opts: TkAppOpts): Promise<TkApp> {
     cpuBarBoxes = Array(opts.numCpus).fill(0).map((val, idx) => {
       let colorIdx: number, color: number;
       let cpuBoxColors: number[];
-      cpuBoxColors = termColors.slice();
+      cpuBoxColors = termColors
+        .slice()
+        .filter(termColorCode => !OMIT_COLOR_CODES.includes(termColorCode))
+      ;
+      // cpuBoxColors = splitLeafShuffle(cpuBoxColors, 1);
       colorIdx = Math.floor(cpuBoxColors.length / opts.numCpus) * idx;
       color = cpuBoxColors[colorIdx];
       return new CpuBarBox({
@@ -235,7 +247,6 @@ export async function setupTermKit(opts: TkAppOpts): Promise<TkApp> {
       //   logger.log(rgb);
       // });
       cpuBarBox.draw({
-        cpuBarVal: cpuBarData[idx],
         // color,
       });
     });

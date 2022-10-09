@@ -3,14 +3,13 @@ import { createHash, Hash, getHashes } from 'crypto';
 
 const ALL_TERM_COLOR_CODES = Array(256).fill(0).map((v, i) => i);
 
-const OMIT_COLOR_CODES: number[] = [
+export const OMIT_COLOR_CODES: number[] = [
   ...getRangeInclusive(16, 27),
-  // ...getRangeInclusive(28, 33),
   ...getRangeInclusive(52, 81),
   ...getRangeInclusive(88, 117),
   ...getRangeInclusive(124, 159),
   ...getRangeInclusive(160, 177),
-  // ...getRangeInclusive(160, 195),
+
   // 0,
   // 4,
   // 7,
@@ -22,7 +21,7 @@ const OMIT_COLOR_CODES: number[] = [
 
 let TERM_COLOR_CODES = ALL_TERM_COLOR_CODES
   .slice(16, 232) // min:16 max:231
-  .filter(termColorCode => !OMIT_COLOR_CODES.includes(termColorCode))
+  // .filter(termColorCode => !OMIT_COLOR_CODES.includes(termColorCode))
 ;
 
 export {

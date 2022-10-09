@@ -17,7 +17,7 @@ export type CpuBarBoxOpts = {
 };
 
 export type CpuBarBoxDrawOpts = {
-  cpuBarVal: number;
+  // cpuBarVal: number;
   color?: number;
 }
 
@@ -26,6 +26,7 @@ export class CpuBarBox {
   cpudIdx: number;
   numCpus: number;
   color: number;
+  cpuBarVal: number;
 
   private maxY: number;
   private barX: number;
@@ -42,13 +43,17 @@ export class CpuBarBox {
     this.cpuBarLabel = `${this.cpudIdx}`;
   }
 
+  setData(cpuBarVal: number) {
+    this.cpuBarVal = cpuBarVal;
+  }
+
   draw(opts: CpuBarBoxDrawOpts) {
     let color: number, currPercent: number;
     let maxBrailleY: number;
     let brailleCanvas: BrailleCanvas, brailleBarMatrix: string[][];
 
     maxBrailleY = this.maxY * 4;
-    currPercent = opts.cpuBarVal / 100;
+    currPercent = this.cpuBarVal / 100;
     // currPercent = 1;
     color = this.color ?? opts.color ?? getColor(
       this.cpudIdx,

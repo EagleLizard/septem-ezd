@@ -1,10 +1,12 @@
 
+import si from 'systeminformation';
+
 import { Logger } from '../../../util/logger';
 import { getIntuitiveTimeString } from '../../../util/print-util';
 import { sleep } from '../../../util/sleep';
 import { Timer } from '../../../util/timer';
 import { CpuSampleData, CpuSampler } from '../monitor/cpu-sampler';
-import { MemSampler } from '../monitor/mem-sampler';
+import { MemSample, MemSampler } from '../monitor/mem-sampler';
 import {
   setupTermKit,
   TkApp,
@@ -20,6 +22,8 @@ const DRAW_INTERVAL_MS = Math.round(1000 / DRAW_FPS);
 const TK_APP_LOG_INTERVAL_MS = 5 * 1e3;
 // const TK_APP_LOG_INTERVAL_MS = 60 * 1e3;
 
+const logger = Logger.init();
+
 export async function tkMain() {
   let tkApp: TkApp, doDraw: boolean;
   let tkAppLogTimer: Timer, tkAppTimer: Timer;
@@ -27,9 +31,9 @@ export async function tkMain() {
   let cpuSampler: CpuSampler, currCpuSampleMap: Record<number, CpuSampleData>;
   let cpuSampleLookBackMs: number, cpuSampleStartTime: number;
 
-  let memSampler: MemSampler;
-
-  const logger = Logger.init();
+  let memSampler: MemSampler, currMemSamples: MemSample[];
+  let memSampleLookBackMs: number, memSampleStartTime: number;
+  let currMemSampleData: MemSample['data'];
 
   cpuSampler = await CpuSampler.init();
   cpuSampler.start();
@@ -44,19 +48,31 @@ export async function tkMain() {
 
   tkAppTimer = Timer.start();
   tkAppLogTimer = Timer.start();
-  // cpuSampleLookBackMs = 1e4;
-  // cpuSampleLookBackMs = 1e3;
+
   // cpuSampleLookBackMs = 500;
   cpuSampleLookBackMs = 375;
   // cpuSampleLookBackMs = 250;
+
+  // memSampleLookBackMs = 3000;
+  memSampleLookBackMs = 1750;
+
   do {
     cpuSampleStartTime = Date.now() - cpuSampleLookBackMs;
     currCpuSampleMap = cpuSampler.current(cpuSampleStartTime);
+
+    memSampleStartTime = Date.now() - memSampleLookBackMs;
+    currMemSamples = memSampler.getSamples(memSampleStartTime);
+
+    currMemSampleData = getMemSampleData(currMemSamples);
+
     tkApp.setCpuBarData(
       getCpuBarData(
         currCpuSampleMap
       )
     );
+
+    tkApp.setMemData(currMemSampleData);
+
     if(tkAppLogTimer.currentMs() > TK_APP_LOG_INTERVAL_MS) {
       printStats();
       tkAppLogTimer.reset();
@@ -87,10 +103,43 @@ export async function tkMain() {
     logger.log(`lookback cpu numSamples: ${cpuSampler.getNumSamples().toLocaleString()}`);
     logger.log(`total cpu numSamples: ${cpuSampler.sampleCount.toLocaleString()}`);
     logger.log('');
+    logger.log(`curr mem numSamples: ${currMemSamples.length.toLocaleString()}`);
     logger.log(`mem numSamples: ${memSampler.memSamples.length.toLocaleString()}`);
     logger.log(`total mem numSamples: ${memSampler.sampleCount.toLocaleString()}`);
     logger.log('');
+    getMemSampleData(currMemSamples);
   }
+}
+
+function getMemSampleData(memSamples: MemSample[]): MemSample['data'] {
+  let memSampleAcc: si.Systeminformation.MemData,
+    memSampleDataKeys: (keyof si.Systeminformation.MemData)[]
+  ;
+
+  memSampleAcc = {
+    total: 0,
+    free: 0,
+    used: 0,
+    active: 0,
+    available: 0,
+    buffcache: 0,
+    buffers: 0,
+    cached: 0,
+    slab: 0,
+    swaptotal: 0,
+    swapused: 0,
+    swapfree: 0,
+  };
+  memSampleDataKeys = Object.keys(memSampleAcc)as (keyof MemSample['data'])[];
+  memSamples.forEach(memSample => {
+    memSampleDataKeys.forEach(memSampleKey => {
+      memSampleAcc[memSampleKey] += memSample.data[memSampleKey];
+    });
+  });
+  memSampleDataKeys.forEach(memSampleKey => {
+    memSampleAcc[memSampleKey] = memSampleAcc[memSampleKey] / memSamples.length;
+  });
+  return memSampleAcc;
 }
 
 function getCpuBarData(cpuSampleMap: Record<number, CpuSampleData>): Record<number, number> {
