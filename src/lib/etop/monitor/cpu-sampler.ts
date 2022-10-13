@@ -6,6 +6,7 @@ import { sleep } from '../../../util/sleep';
 
 // const DEFAULT_CPU_SAMPLE_INTERVAL_MS = 0;
 // const DEFAULT_CPU_SAMPLE_INTERVAL_MS = 5;
+// const DEFAULT_CPU_SAMPLE_INTERVAL_MS = 15;
 const DEFAULT_CPU_SAMPLE_INTERVAL_MS = 25;
 // const DEFAULT_CPU_SAMPLE_INTERVAL_MS = 50;
 

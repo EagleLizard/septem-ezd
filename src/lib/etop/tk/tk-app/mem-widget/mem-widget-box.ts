@@ -25,8 +25,33 @@ export class MemWidgetBox extends TkElement {
 
   memData: MemSample['data'];
 
+  leftPad: number;
+  rightPad: number;
+  topPad: number;
+  bottomPad: number;
+
+  contentHeight: number;
+
   constructor(opts: TkElementOpts) {
+    let leftPad: number, rightPad: number,
+      topPad: number, bottomPad: number,
+      contentHeight: number
+    ;
+    leftPad = 1;
+    rightPad = 1;
+    topPad = 1;
+    bottomPad = 1;
+    contentHeight = 3;
+    if(opts.screenBufOpts.height > (topPad + contentHeight + bottomPad)) {
+      opts.screenBufOpts.height = topPad + contentHeight + bottomPad;
+    }
+    logger.log(opts.screenBufOpts.height);
     super(opts);
+    this.leftPad = leftPad;
+    this.rightPad = rightPad;
+    this.topPad = topPad;
+    this.bottomPad = bottomPad;
+    this.contentHeight = contentHeight;
   }
 
   setData(memData: MemSample['data']) {
@@ -42,10 +67,10 @@ export class MemWidgetBox extends TkElement {
 
     super.draw();
 
-    yPos = 1;
+    yPos = this.topPad;
 
     memBarWidth = Math.floor(this.width / 2);
-    memBarWidth = Math.floor(this.width - 2);
+    memBarWidth = Math.floor(this.width - (this.leftPad + this.rightPad));
 
     usedMemory = this.getUsedMem();
     usedMemoryPercentStr = (usedMemory * 100).toFixed(3);
@@ -83,10 +108,7 @@ export class MemWidgetBox extends TkElement {
     //   color: 34,
     //   bgColor: 118,
     // };
-    memBarAttr = {
-      color: 88,
-      bgColor: 76,
-    };
+
     memBarAttr = {
       color: 88,
       bgColor: 76,
