@@ -3,7 +3,7 @@ import si from 'systeminformation';
 
 import { Logger } from '../../../util/logger';
 import { getIntuitiveTimeString } from '../../../util/print-util';
-import { sleep, sleepImmediate, sleepIncremental } from '../../../util/sleep';
+import { sleep, sleepImmediate } from '../../../util/sleep';
 import { Timer } from '../../../util/timer';
 import { CpuSampleData, CpuSampler } from '../monitor/cpu-sampler';
 import { MemSample, MemSampler } from '../monitor/mem-sampler';
@@ -16,12 +16,15 @@ import {
 // const DRAW_FPS = 120;
 // const DRAW_FPS = 60;
 // const DRAW_FPS = 48;
-const DRAW_FPS = 24;
+const DRAW_FPS = 30;
+// const DRAW_FPS = 24;
 // const DRAW_FPS = 12;
 // const DRAW_FPS = 1;
 const DRAW_INTERVAL_MS = Math.round(1000 / DRAW_FPS);
 
-const TK_APP_LOG_INTERVAL_MS = 1 * 1e3;
+const TK_APP_LOG_INTERVAL_MS = 0.25 * 1e3;
+// const TK_APP_LOG_INTERVAL_MS = 0.5 * 1e3;
+// const TK_APP_LOG_INTERVAL_MS = 1 * 1e3;
 // const TK_APP_LOG_INTERVAL_MS = 5 * 1e3;
 // const TK_APP_LOG_INTERVAL_MS = 60 * 1e3;
 
@@ -30,12 +33,15 @@ const logger = Logger.init();
 export async function tkMain() {
   let tkApp: TkApp, doDraw: boolean;
   let tkAppLogTimer: Timer, tkAppTimer: Timer;
+  let tkAppLogCurrMs: number;
   let frameTimer: Timer;
-  let frameDeltaMs: number, frameDrawMs: number, drawDiffMs: number, diffMs: number;
-  let actualDrawIntervalMs: number, frameMisses: number;
+  let frameDeltaMs: number, diffMs: number;
+  let actualDrawIntervalMs: number, totalFrames: number, frameMisses: number;
+  let nowMs: number;
 
   let cpuSampler: CpuSampler, currCpuSampleMap: Record<number, CpuSampleData>;
   let cpuSampleLookBackMs: number, cpuSampleStartTime: number;
+  let currCpuSampleData: Record<number, number>;
 
   let memSampler: MemSampler, currMemSamples: MemSample[];
   let memSampleLookBackMs: number, memSampleStartTime: number;
@@ -71,50 +77,49 @@ export async function tkMain() {
   netSampleLookbackMs = 375;
 
   frameTimer = Timer.start();
+  totalFrames = 0;
   frameMisses = 0;
 
   do {
 
     frameTimer.reset();
 
-    cpuSampleStartTime = Date.now() - cpuSampleLookBackMs;
+    nowMs = Date.now();
+
+    cpuSampleStartTime = nowMs - cpuSampleLookBackMs;
+    memSampleStartTime = nowMs - memSampleLookBackMs;
+    netSampleStartTime = nowMs - netSampleLookbackMs;
+
     currCpuSampleMap = cpuSampler.current(cpuSampleStartTime);
-
-    memSampleStartTime = Date.now() - memSampleLookBackMs;
     currMemSamples = memSampler.getSamples(memSampleStartTime);
-
-    netSampleStartTime = Date.now() - netSampleLookbackMs;
     currNetSamples = netSampler.getSamples(netSampleStartTime);
 
+    currCpuSampleData = getCpuBarData(currCpuSampleMap);
+    tkApp.setCpuBarData(currCpuSampleData);
+
     currMemSampleData = getMemSampleData(currMemSamples);
-
-    tkApp.setCpuBarData(
-      getCpuBarData(
-        currCpuSampleMap
-      )
-    );
-
     tkApp.setMemData(currMemSampleData);
 
-    if(tkAppLogTimer.currentMs() > TK_APP_LOG_INTERVAL_MS) {
-      printStats();
-      tkAppLogTimer.reset();
-    }
-
     doDraw = !(await tkApp.draw()).destroyed;
+    totalFrames++;
 
     actualDrawIntervalMs = DRAW_INTERVAL_MS - Math.ceil(frameTimer.currentMs());
-
     await sleep(actualDrawIntervalMs);
 
     frameDeltaMs = frameTimer.currentMs();
-    diffMs = frameDeltaMs - DRAW_INTERVAL_MS;
+    tkAppLogCurrMs = tkAppLogTimer.currentMs();
 
+    diffMs = frameDeltaMs - DRAW_INTERVAL_MS;
     if(
       (frameDeltaMs > DRAW_INTERVAL_MS)
-      && ((diffMs / DRAW_INTERVAL_MS) > 0.15)
+      && ((diffMs / DRAW_INTERVAL_MS) > 0.25)
     ) {
       frameMisses++;
+    }
+
+    if(tkAppLogCurrMs > TK_APP_LOG_INTERVAL_MS) {
+      printStats();
+      tkAppLogTimer.reset();
     }
 
   } while(doDraw);
@@ -132,30 +137,33 @@ export async function tkMain() {
   }
 
   function printStats() {
-    let tkAppCurrentMs: number;
     let frameMissesPerSec: number;
+    let tkAppCurrMs: number;
 
-    tkAppCurrentMs = tkAppTimer.currentMs();
-    frameMissesPerSec = frameMisses / (tkAppCurrentMs / 1000);
+    tkAppCurrMs = tkAppTimer.currentMs();
+
+    frameMissesPerSec = frameMisses / (tkAppCurrMs / 1000);
 
     logger.log('~'.repeat(40));
-    logger.log(`${getIntuitiveTimeString(tkAppCurrentMs)}`);
-    logger.log(`tkApp drawCount: ${tkApp.getDrawCount().toLocaleString()}`);
-    logger.log('');
+    logger.log(`${getIntuitiveTimeString(tkAppCurrMs)}`);
+    // logger.log(`tkApp drawCount: ${tkApp.getDrawCount().toLocaleString()}`);
+    // logger.log('');
     logger.log(`curr cpu numSamples: ${currCpuSampleMap[0].loadSamples.length.toLocaleString()}`);
     logger.log(`lookback cpu numSamples: ${cpuSampler.getNumSamples().toLocaleString()}`);
     logger.log(`total cpu numSamples: ${cpuSampler.sampleCount.toLocaleString()}`);
     logger.log('');
     logger.log(`curr mem numSamples: ${currMemSamples.length.toLocaleString()}`);
-    logger.log(`mem numSamples: ${memSampler.memSamples.length.toLocaleString()}`);
-    logger.log(`total mem numSamples: ${memSampler.sampleCount.toLocaleString()}`);
+    // logger.log(`mem numSamples: ${memSampler.memSamples.length.toLocaleString()}`);
+    // logger.log(`total mem numSamples: ${memSampler.sampleCount.toLocaleString()}`);
     logger.log('');
     logger.log(`curr net numSamples: ${currNetSamples.length.toLocaleString()}`);
-    logger.log(`net numSamples: ${netSampler.netSamples.length.toLocaleString()}`);
-    logger.log(`total net numSamples: ${netSampler.sampleCount.toLocaleString()}`);
+    // logger.log(`net numSamples: ${netSampler.netSamples.length.toLocaleString()}`);
+    // logger.log(`total net numSamples: ${netSampler.sampleCount.toLocaleString()}`);
     logger.log('');
+    logger.log(`totalFrames: ${totalFrames.toLocaleString()}`);
     logger.log(`frameMisses: ${frameMisses}`);
     logger.log(`frameMisses/s: ${frameMissesPerSec.toFixed(3)}`);
+    logger.log(`% frames missed: ${((frameMisses / totalFrames) * 100).toFixed(3)} %`);
     logger.log('');
 
   }
@@ -180,7 +188,7 @@ function getMemSampleData(memSamples: MemSample[]): MemSample['data'] {
     swapused: 0,
     swapfree: 0,
   };
-  memSampleDataKeys = Object.keys(memSampleAcc)as (keyof MemSample['data'])[];
+  memSampleDataKeys = Object.keys(memSampleAcc) as (keyof MemSample['data'])[];
   memSamples.forEach(memSample => {
     memSampleDataKeys.forEach(memSampleKey => {
       memSampleAcc[memSampleKey] += memSample.data[memSampleKey];

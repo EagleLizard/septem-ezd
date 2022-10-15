@@ -1,6 +1,5 @@
 
 import si from 'systeminformation';
-import _cloneDeep from 'lodash.clonedeep';
 
 import { sleep } from '../../../util/sleep';
 
