@@ -12,10 +12,14 @@ import {
 } from './color-palette/color-palette-box';
 import { leafShuffle, splitLeafShuffle } from '../../../../util/shuffle';
 import { MemWidgetBox } from './mem-widget/mem-widget-box';
+import { NetWidgetBox } from './net-widget/net-widget-box';
 import { MemSample } from '../../monitor/mem-sampler';
+import { Timer } from '../../../../util/timer';
+import { NetSample } from '../../monitor/net-sampler';
 
 export type TkAppOpts = {
   numCpus: number;
+  getNetworkSamples: (startTime: number) => NetSample[];
   onInput?: (keyName: string, matches: string[]) => void;
 };
 
@@ -41,6 +45,7 @@ export async function setupTermKit(opts: TkAppOpts): Promise<TkApp> {
   let cpuBarBoxes: CpuBarBox[];
   let colorPaletteBox: ColorPaletteBox;
   let memWidgetBox: MemWidgetBox;
+  let netWidgetBox: NetWidgetBox;
 
   let doRedraw: boolean, drawCount: number;
   let termColors: number[];
@@ -197,17 +202,28 @@ export async function setupTermKit(opts: TkAppOpts): Promise<TkApp> {
       }
     });
 
+    netWidgetBox = new NetWidgetBox({
+      screenBufOpts: {
+        dst: screen,
+        height: 4,
+        width: Math.floor(screen.width / 3),
+        x: 0,
+        y: memWidgetBox.y + memWidgetBox.height,
+      },
+    });
+
     colorPaletteBox = new ColorPaletteBox({
       screenBufOpts: {
         dst: screen,
         height: screen.height - (
-          cpuBarBoxContainer.height + memWidgetBox.height
+          netWidgetBox.y + netWidgetBox.height
         ),
         width: screen.width - cpuBarBoxContainer.width - 2,
+        // width: screen.width - 2,
         // x: cpuBarBoxContainer.width + 1,
         // y: 0,
         x: 0,
-        y: memWidgetBox.y + memWidgetBox.height,
+        y: netWidgetBox.y + netWidgetBox.height,
       },
       colors: termColors,
     });
@@ -225,6 +241,9 @@ export async function setupTermKit(opts: TkAppOpts): Promise<TkApp> {
     $redrawCpuBox();
     $redrawColorPalette();
     memWidgetBox.draw();
+    netWidgetBox.draw({
+      getNetworkSamples: opts.getNetworkSamples,
+    });
 
     screen.draw({
       delta: true,

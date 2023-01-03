@@ -19,12 +19,14 @@ import {
 const DRAW_FPS = 30;
 // const DRAW_FPS = 24;
 // const DRAW_FPS = 12;
+// const DRAW_FPS = 6;
 // const DRAW_FPS = 1;
 const DRAW_INTERVAL_MS = Math.round(1000 / DRAW_FPS);
 
-const TK_APP_LOG_INTERVAL_MS = 0.25 * 1e3;
+// const TK_APP_LOG_INTERVAL_MS = 0.15 * 1e3;
+// const TK_APP_LOG_INTERVAL_MS = 0.25 * 1e3;
 // const TK_APP_LOG_INTERVAL_MS = 0.5 * 1e3;
-// const TK_APP_LOG_INTERVAL_MS = 1 * 1e3;
+const TK_APP_LOG_INTERVAL_MS = 1 * 1e3;
 // const TK_APP_LOG_INTERVAL_MS = 5 * 1e3;
 // const TK_APP_LOG_INTERVAL_MS = 60 * 1e3;
 
@@ -33,7 +35,7 @@ const logger = Logger.init();
 export async function tkMain() {
   let tkApp: TkApp, doDraw: boolean;
   let tkAppLogTimer: Timer, tkAppTimer: Timer;
-  let tkAppLogCurrMs: number;
+  let tkAppLogCurrMs: number, tkAppCurrMs: number;
   let frameTimer: Timer;
   let frameDeltaMs: number, diffMs: number;
   let actualDrawIntervalMs: number, totalFrames: number, frameMisses: number;
@@ -62,6 +64,9 @@ export async function tkMain() {
   tkApp = await setupTermKit({
     numCpus: cpuSampler.getNumCpus(),
     onInput: handleInput,
+    getNetworkSamples: (startTime: number) => {
+      return netSampler.getSamples(startTime);
+    },
   });
 
   tkAppTimer = Timer.start();
@@ -90,7 +95,7 @@ export async function tkMain() {
     memSampleStartTime = nowMs - memSampleLookBackMs;
     netSampleStartTime = nowMs - netSampleLookbackMs;
 
-    currCpuSampleMap = cpuSampler.current(cpuSampleStartTime);
+    currCpuSampleMap = cpuSampler.getSamples(cpuSampleStartTime);
     currMemSamples = memSampler.getSamples(memSampleStartTime);
     currNetSamples = netSampler.getSamples(netSampleStartTime);
 
@@ -101,13 +106,15 @@ export async function tkMain() {
     tkApp.setMemData(currMemSampleData);
 
     doDraw = !(await tkApp.draw()).destroyed;
-    totalFrames++;
 
     actualDrawIntervalMs = DRAW_INTERVAL_MS - Math.ceil(frameTimer.currentMs());
     await sleep(actualDrawIntervalMs);
 
+    totalFrames++;
+
     frameDeltaMs = frameTimer.currentMs();
     tkAppLogCurrMs = tkAppLogTimer.currentMs();
+    tkAppCurrMs = tkAppTimer.currentMs();
 
     diffMs = frameDeltaMs - DRAW_INTERVAL_MS;
     if(
@@ -118,7 +125,7 @@ export async function tkMain() {
     }
 
     if(tkAppLogCurrMs > TK_APP_LOG_INTERVAL_MS) {
-      printStats();
+      // printStats();
       tkAppLogTimer.reset();
     }
 
@@ -138,9 +145,6 @@ export async function tkMain() {
 
   function printStats() {
     let frameMissesPerSec: number;
-    let tkAppCurrMs: number;
-
-    tkAppCurrMs = tkAppTimer.currentMs();
 
     frameMissesPerSec = frameMisses / (tkAppCurrMs / 1000);
 
@@ -163,6 +167,7 @@ export async function tkMain() {
     logger.log(`totalFrames: ${totalFrames.toLocaleString()}`);
     logger.log(`frameMisses: ${frameMisses}`);
     logger.log(`frameMisses/s: ${frameMissesPerSec.toFixed(3)}`);
+    logger.log(`actual FPS: ${(totalFrames / (tkAppCurrMs / 1000)).toFixed(3)}`);
     logger.log(`% frames missed: ${((frameMisses / totalFrames) * 100).toFixed(3)} %`);
     logger.log('');
 

@@ -41,7 +41,7 @@ export abstract class TkElement {
     return this.screenBuffer.y;
   }
 
-  protected draw() {
+  protected _fill() {
     this.screenBuffer.fill({
       attr: TERM_FILL_ATTR,
     });

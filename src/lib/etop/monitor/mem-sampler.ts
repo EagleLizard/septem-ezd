@@ -5,8 +5,9 @@ import { Logger } from '../../../util/logger';
 import { sleep } from '../../../util/sleep';
 
 // const DEFAULT_MEM_SAMPLE_INTERVAL_MS = 1500;
+const DEFAULT_MEM_SAMPLE_INTERVAL_MS = 750;
 // const DEFAULT_MEM_SAMPLE_INTERVAL_MS = 500;
-const DEFAULT_MEM_SAMPLE_INTERVAL_MS = 300;
+// const DEFAULT_MEM_SAMPLE_INTERVAL_MS = 300;
 // const DEFAULT_MEM_SAMPLE_INTERVAL_MS = 100;
 // const DEFAULT_MEM_SAMPLE_INTERVAL_MS = 0;
 const MAX_MEM_LOAD_SAMPLES = 1e5;
@@ -60,6 +61,9 @@ export class MemSampler {
       startTimeSampleIdx = 0;
     }
     lookBackMemSamples = this.memSamples.slice(startTimeSampleIdx);
+    if(lookBackMemSamples.length < 1) {
+      lookBackMemSamples = this.memSamples.slice(-1);
+    }
     return lookBackMemSamples;
   }
 

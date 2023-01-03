@@ -29,7 +29,6 @@ export class MemWidgetBox extends TkElement {
   rightPad: number;
   topPad: number;
   bottomPad: number;
-
   contentHeight: number;
 
   constructor(opts: TkElementOpts) {
@@ -65,7 +64,7 @@ export class MemWidgetBox extends TkElement {
 
     let yPos: number;
 
-    super.draw();
+    super._fill();
 
     yPos = this.topPad;
 

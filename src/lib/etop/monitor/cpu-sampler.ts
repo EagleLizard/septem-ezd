@@ -8,6 +8,7 @@ import { sleep } from '../../../util/sleep';
 // const DEFAULT_CPU_SAMPLE_INTERVAL_MS = 15;
 const DEFAULT_CPU_SAMPLE_INTERVAL_MS = 25;
 // const DEFAULT_CPU_SAMPLE_INTERVAL_MS = 50;
+// const DEFAULT_CPU_SAMPLE_INTERVAL_MS = 150;
 
 const MAX_CPU_LOAD_SAMPLES = 1e5;
 // const MAX_CPU_LOAD_SAMPLES = 2e5;
@@ -56,7 +57,7 @@ export class CpuSampler {
     return Object.keys(this.cpuSampleMap).length;
   }
 
-  current(startTime = 0) {
+  getSamples(startTime = 0) {
     let currCpuSampleMap: Record<number, CpuSampleData>;
     currCpuSampleMap = Object.keys(this.cpuSampleMap).reduce((acc, curr) => {
       let currKey: number, currSamples: CpuLoadSample[], nextSamples: CpuLoadSample[];
